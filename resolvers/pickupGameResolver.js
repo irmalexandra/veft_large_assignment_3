@@ -1,26 +1,41 @@
 const pickupGameData = require('../data/db').PickupGame;
 const playerData = require('../data/db').Player;
 const playedGamesData = require('../data/db').PlayedGames;
-const objectId = require('mongoose').ObjectID;
+const basketballFieldService = require('../services/basketballFieldService');
 
 async function createPickupGame(parent, args){
     const host = await playerData.findById(args.input.hostId);
-    args.input.host = host;
-    const createdPickupGame = await pickupGameData.create(args.input);
+    const field = await basketballFieldService.getBasketballFieldById( "" , args.input.basketballFieldId);
+    const newPickupGame = {
+        start: args.input.start,
+        end: args.input.end,
+        basketballFieldId: args.input.basketballFieldId,
+        hostId: args.input.hostId
+    };
+    const createdPickupGame = await pickupGameData.create(newPickupGame);
+
+    const createdPlayedGame = await playedGamesData.create({
+        playerID: host.id,
+        pickupGameID: createdPickupGame.id
+    });
+
+    createdPickupGame.registeredPlayers.push(host);
+    await createdPickupGame.save();
+    host.playedGames.push(createdPickupGame.id);
+    await host.save();
+
+    playerArr = [];
+    for (let i = 0; i < createdPickupGame.registeredPlayers.length; i++){
+        playerArr.push(playerData.findById(createdPickupGame.registeredPlayers[i]))
+    }
+
     return {
         id: createdPickupGame.id,
         start: createdPickupGame.start,
         end: createdPickupGame.end,
-        location: {
-            id: "Yes",
-            name: createdPickupGame.basketballFieldId,
-            capacity: 5,
-            yearOfCreation: "2020-10-15T18:30",
-        },
-        host: {
-            id: host.id,
-            name: host.name
-        }
+        location: field,
+        host: host,
+        registeredPlayers: playerArr
     }
 }
 
@@ -37,28 +52,22 @@ async function addPlayerToPickupGame(parent, args){
     pickupGame.registeredPlayers.push(player.id);
     pickupGame.save();
 
-    const host = await playerData.findById(pickupGame.host);
-    let returnObject = {
+    const host = await playerData.findById(pickupGame.hostId);
+    const field = await basketballFieldService.getBasketballFieldById( "" , pickupGame.basketballFieldId);
+
+    playerArr = [];
+    for (let i = 0; i < pickupGame.registeredPlayers.length; i++){
+        playerArr.push(playerData.findById(pickupGame.registeredPlayers[i]))
+    }
+
+    return {
         id: pickupGame.id,
         start: pickupGame.start,
         end: pickupGame.end,
-        location: {
-            id: "Yes",
-            name: pickupGame.basketballFieldId,
-            capacity: 5,
-            yearOfCreation: "2020-10-15T18:30",
-        },
-        registeredPlayers : [],
-        host: {
-            id: host.id,
-            name: host.name
-        }
-    };
-    for (const p in pickupGame.registeredPlayers){
-        const player = playerData.findById(pickupGame.registeredPlayers[p]);
-        returnObject.registeredPlayers.push(player)
+        location: field,
+        host: host,
+        registeredPlayers: playerArr
     }
-    return returnObject
 }
 
 

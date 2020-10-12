@@ -10,12 +10,14 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
+
     "nodemon": "^1.18.4"
   },
   "dependencies": {
     "apollo-server": "^2.18.1",
     "graphql": "^15.3.0",
     "moment": "^2.29.1",
+    "axios": "^0.20.0",
     "mongoose": "^5.10.9"
   },
   "repository": {

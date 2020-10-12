@@ -22,35 +22,25 @@ async function updatePlayer(parent, args) {
 }
 
 async function getAllPlayers(){
-    players = await playerData.find();
-    playerArr = [];
-    for (player in players){
-        playerObject = {
-            id: players[player].id,
-            name: players[player].name,
+    console.log("help");
+    allPlayers = await playerData.find();
+    let returnArr = [];
+
+    for (player in allPlayers){
+        let returnObject = {
+            id: allPlayers[player].id,
+            name: allPlayers[player].name,
             playedGames: []
         };
-        for (game in players[player].playedGames){
-            host = pickupGameData.find({host: players[player].playedGames[game].host})
-            playerObject.playedGames.push({
-                id: players[player].playedGames[game].id,
-                start: players[player].playedGames[game].start,
-                end: players[player].playedGames[game].end,
-                location: {
-                    id: "Yes",
-                    name: players[player].playedGames[game].basketballFieldId,
-                    capacity: 5,
-                    yearOfCreation: "2020-10-15T18:30",
-                },
-                host: {
-                    id: host.id,
-                    name: host.name
-                }
-            })
+        console.log(returnObject);
+        for (let i = 0; i < allPlayers[player].playedGames.length; i++){
+            const pickupGame = await pickupGameData.findById(allPlayers[player].playedGames[i]);
+            pickupGame.host = await playerData.findById(pickupGame.hostId);
+            returnObject.playedGames.push(pickupGame)
         }
-        playerArr.push(playerObject)
+        returnArr.push(returnObject);
     }
-    return playerArr
+    return returnArr;
 }
 
 
