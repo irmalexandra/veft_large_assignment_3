@@ -1,3 +1,3 @@
 module.exports = `
-    updatePlayer(id: ID!): Player
+    updatePlayer(id: ID! name:String!): Player
 `;

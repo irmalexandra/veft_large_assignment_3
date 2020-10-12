@@ -1,3 +1,3 @@
 module.exports = `
-    addPlayerToPickupGame(id: ID!): PickupGame
+    addPlayerToPickupGame(playerID: ID! pickupGameID: ID!): PickupGame
 `;
