@@ -1,10 +1,10 @@
-const { ApolloServer } = require('apollo-server');
+const ApolloServer = require('apollo-server').ApolloServer;
+const typeDefs = require('./schema');
+const resolvers = {}
 
 const server = new ApolloServer({
-    /*
-        Add typeDefs
-        Add resolvers
-    */
+    typeDefs,
+    resolvers
 });
 
 server.listen()
