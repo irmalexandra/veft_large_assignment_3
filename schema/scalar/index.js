@@ -1,4 +1,4 @@
-const Moment = require('./Moment')
+const Moment = require('./Moment');
 
 module.exports = `
         ${Moment}

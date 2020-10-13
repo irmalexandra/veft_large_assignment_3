@@ -1,3 +1,3 @@
 module.exports = `
-    removePlayerFromPickupGame(id: ID!): Boolean!
+    removePlayerFromPickupGame(input: SignupPlayerInput!): Boolean!
 `;

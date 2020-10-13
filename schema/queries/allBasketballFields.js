@@ -1,5 +1,5 @@
 module.exports = `
 
-    allBasketballFields: [BasketballField!]!
+    allBasketballFields(status: BasketballFieldStatus): [BasketballField!]!
 
 `;

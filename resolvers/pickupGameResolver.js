@@ -4,84 +4,89 @@ const playedGamesData = require('../data/db').PlayedGames;
 const basketballFieldService = require('../services/basketballFieldService');
 
 async function createPickupGame(parent, args){
-    const host = await playerData.findById(args.input.hostId);
-    const field = await basketballFieldService.getBasketballFieldById( "" , args.input.basketballFieldId);
-    const newPickupGame = {
-        start: args.input.start,
-        end: args.input.end,
-        basketballFieldId: args.input.basketballFieldId,
-        hostId: args.input.hostId
-    };
-    const createdPickupGame = await pickupGameData.create(newPickupGame);
-
-    const createdPlayedGame = await playedGamesData.create({
-        playerID: host.id,
-        pickupGameID: createdPickupGame.id
-    });
-
-    createdPickupGame.registeredPlayers.push(host);
-    await createdPickupGame.save();
-    host.playedGames.push(createdPickupGame.id);
-    await host.save();
-
-    playerArr = [];
-    for (let i = 0; i < createdPickupGame.registeredPlayers.length; i++){
-        playerArr.push(playerData.findById(createdPickupGame.registeredPlayers[i]))
-    }
-
-    return {
-        id: createdPickupGame.id,
-        start: createdPickupGame.start,
-        end: createdPickupGame.end,
-        location: field,
-        host: host,
-        registeredPlayers: playerArr
-    }
+    newPickupGame = await pickupGameData.create(args["input"]);
+    newPickupGame.registeredPlayers.push(args["input"]["hostId"]);
+    newPickupGame.save();
+    return newPickupGame
 }
 
 async function addPlayerToPickupGame(parent, args){
-    const player = await playerData.findById(args.playerID);
-    const pickupGame = await pickupGameData.findById(args.pickupGameID);
-
-    const createdPlayedGame = await playedGamesData.create({
-        playerID: player.id,
-        pickupGameID: pickupGame.id
-    });
-    player.playedGames.push(pickupGame.id);
-    player.save();
-    pickupGame.registeredPlayers.push(player.id);
-    pickupGame.save();
-
-    const host = await playerData.findById(pickupGame.hostId);
-    const field = await basketballFieldService.getBasketballFieldById( "" , pickupGame.basketballFieldId);
-
-    playerArr = [];
-    for (let i = 0; i < pickupGame.registeredPlayers.length; i++){
-        playerArr.push(playerData.findById(pickupGame.registeredPlayers[i]))
+    pickupGame = await pickupGameData.findOne({_id: args["input"]["pickupGameId"], deleted:false});
+    if (pickupGame !== null){
+        pickupGame.registeredPlayers.push(args["input"]["playerId"]);
+        pickupGame.save();
+        return pickupGame
     }
+    // TODO THROW ERROR
+    return null
+}
 
-    return {
-        id: pickupGame.id,
-        start: pickupGame.start,
-        end: pickupGame.end,
-        location: field,
-        host: host,
-        registeredPlayers: playerArr
+async function getPlayedGames(parent){
+    playedArr = [];
+    for (gameId in parent.playedGames){
+        pickupGame = pickupGameData.findOne({_id: parent.playedGames[gameId], deleted:false});
+        playedArr.push(pickupGame)
     }
+    return playedArr
+}
+
+async function getPickupGamesByLocationId(locationId){
+    return pickupGameData.find({location : locationId})
+}
+
+async function allPickupGames(){
+    return pickupGameData.find({deleted:false})
+}
+
+async function getPickupGameById(parent, args){
+    return pickupGameData.findOne({_id: args["id"], deleted:false})
+}
+
+async function removePlayerFromPickupGame(parent, args){
+    pickupGame = await pickupGameData.findOne({_id: args["input"]["pickupGameId"], deleted:false});
+    if (pickupGame !== null){
+        if (pickupGame.registeredPlayers.includes(args["input"]["playerId"])) {
+            pickupGame.registeredPlayers.splice(
+                pickupGame.registeredPlayers.indexOf(args["input"]["playerId"])
+            );
+            pickupGame.save();
+            return true
+        }
+    }
+    // TODO THROW ERROR
+    return false
+
+}
+
+async function deletePickupGame(parent, args){
+    let game = await pickupGameData.findOne({_id: args["id"], deleted:false});
+    if (game !== null){
+        game.deleted = true;
+        game.save();
+        return true
+    }
+    // TODO THROW ERROR
+    return false
 }
 
 
 module.exports = {
     queries: {
-
+        allPickupGames: allPickupGames,
+        pickupGame: getPickupGameById
     },
     types: {
 
     },
     mutations: {
         createPickupGame: createPickupGame,
-        addPlayerToPickupGame: addPlayerToPickupGame
-    }
+        addPlayerToPickupGame: addPlayerToPickupGame,
+        removePlayerFromPickupGame: removePlayerFromPickupGame,
+        removePickupGame: deletePickupGame
+    },
+    getPlayedGames: getPlayedGames,
+    getPickupGamesByLocationId: getPickupGamesByLocationId,
+
 };
 
 

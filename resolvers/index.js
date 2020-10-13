@@ -1,6 +1,7 @@
 const playerResolver = require('./playerResolver');
 const basketballFieldResolver = require('./basketballFieldResolver');
 const pickupGameResolver = require('./pickupGameResolver');
+const momentScalar = require('moment');
 
 module.exports = {
   Query: {
@@ -12,5 +13,21 @@ module.exports = {
     ...playerResolver.mutations,
     ...basketballFieldResolver.mutations,
     ...pickupGameResolver.mutations,
-  }
+  },
+  Player: {
+    playedGames: parent => pickupGameResolver.getPlayedGames(parent)
+  },
+  PickupGame: {
+    host: parent => playerResolver.getPlayerById(parent.hostId),
+    location: parent => basketballFieldResolver.getFieldById("" , parent.basketballFieldId),
+    registeredPlayers: parent => playerResolver.getRegisteredPlayers(parent.registeredPlayers)
+  },
+  BasketballField: {
+    pickupGames: parent => pickupGameResolver.getPickupGamesByLocationId(parent.location),
+  },
+  Moment: {
+    start: parent => console.log(parent),
+    end: parent => console.log(parent)
+  },
+
 };
