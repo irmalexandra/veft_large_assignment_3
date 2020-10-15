@@ -2,12 +2,41 @@ const pickupGameData = require('../data/db').PickupGame;
 const playerData = require('../data/db').Player;
 const playedGamesData = require('../data/db').PlayedGames;
 const basketballFieldService = require('../services/basketballFieldService');
+const errors = require("../errors");
 
 async function createPickupGame(parent, args){
-    newPickupGame = await pickupGameData.create(args["input"]);
-    newPickupGame.registeredPlayers.push(args["input"]["hostId"]);
-    newPickupGame.save();
-    return newPickupGame
+    const location = await basketballFieldService.getBasketballFieldById("", args["input"]["basketballFieldId"])
+    const pickupGames = await getPickupGamesByLocationId(args["input"]["basketballFieldId"]);
+    const start_date = new Date(args["input"]["start"])
+    const end_date = new Date(args["input"]["end"])
+    console.log(end_date - start_date)
+
+    if(end_date - start_date <= 300000 || end_date - start_date >= 7200000 ){
+        throw new errors.DurationNotAllowedError;
+    }
+    if(start_date < Date.now()){
+        throw new errors.TimeHasPassedError;
+    }
+    if(start_date > end_date){
+        throw new errors.MixedDatesError;
+    }
+
+    for(game in pickupGames){
+        if(end_date >= pickupGames[game].start && start_date <= pickupGames[game].end ){
+            throw new errors.PickupGameOverlapError;
+        }
+        // console.log(pickupGames[game])
+    }
+    if(location["status"] === 'OPEN'){
+
+        newPickupGame = await pickupGameData.create(args["input"]);
+        newPickupGame.registeredPlayers.push(args["input"]["hostId"]);
+        newPickupGame.save();
+        return newPickupGame
+    }else{
+        throw new errors.BasketballFieldClosedError;
+    }
+
 }
 
 async function addPlayerToPickupGame(parent, args){
@@ -31,7 +60,7 @@ async function getPlayedGames(parent){
 }
 
 async function getPickupGamesByLocationId(locationId){
-    return pickupGameData.find({location : locationId})
+    return pickupGameData.find({basketballFieldId : locationId})
 }
 
 async function allPickupGames(){
@@ -57,6 +86,8 @@ async function removePlayerFromPickupGame(parent, args){
     return false
 
 }
+
+
 
 async function deletePickupGame(parent, args){
     let game = await pickupGameData.findOne({_id: args["id"], deleted:false});
@@ -86,6 +117,7 @@ module.exports = {
     },
     getPlayedGames: getPlayedGames,
     getPickupGamesByLocationId: getPickupGamesByLocationId,
+
 
 };
 

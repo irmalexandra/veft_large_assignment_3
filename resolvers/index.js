@@ -15,7 +15,8 @@ module.exports = {
     ...pickupGameResolver.mutations,
   },
   Player: {
-    playedGames: parent => pickupGameResolver.getPlayedGames(parent)
+    playedGames: parent => pickupGameResolver.getPlayedGames(parent),
+
   },
   PickupGame: {
     host: parent => playerResolver.getPlayerById(parent.hostId),
@@ -26,8 +27,7 @@ module.exports = {
     pickupGames: parent => pickupGameResolver.getPickupGamesByLocationId(parent.location),
   },
   Moment: {
-    start: parent => console.log(parent),
-    end: parent => console.log(parent)
+    end: parent => console.log(parent),
   },
 
 };
