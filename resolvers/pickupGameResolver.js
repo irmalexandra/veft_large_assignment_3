@@ -1,6 +1,5 @@
 const pickupGameData = require('../data/db').PickupGame;
 const playerData = require('../data/db').Player;
-const playedGamesData = require('../data/db').PlayedGames;
 const basketballFieldService = require('../services/basketballFieldService');
 const errors = require("../errors");
 const mongoose = require('mongoose');

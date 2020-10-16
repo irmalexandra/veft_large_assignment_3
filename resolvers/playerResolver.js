@@ -1,7 +1,4 @@
 const playerData = require('../data/db').Player;
-const pickupGameData = require('../data/db').PickupGame;
-const playedGames = require('../data/db').PlayedGames;
-const playerSchema = require('../data/schemas/Player');
 const pickupGameResolver = require('./pickupGameResolver');
 const errors = require("../errors");
 const mongoose = require('mongoose');

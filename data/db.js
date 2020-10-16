@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 const pickupGameSchema = require('./schemas/PickupGame');
-const playedGamesSchema = require('./schemas/playedGames');
+
 const playerSchema = require('./schemas/Player');
 const uri = "mongodb+srv://admin:admin@cluster0.6f5od.mongodb.net/LA-3_Hoop_Dreams?retryWrites=true&w=majority";
 
@@ -14,6 +14,5 @@ const connection = mongoose.createConnection(uri, { useNewUrlParser: true, useUn
 module.exports = {
     connection,
     PickupGame: connection.model('PickupGame', pickupGameSchema),
-    PlayedGames: connection.model('PlayedGames', playedGamesSchema),
     Player: connection.model('Player', playerSchema)
 };
