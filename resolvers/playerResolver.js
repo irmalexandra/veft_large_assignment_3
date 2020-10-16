@@ -66,7 +66,7 @@ async function removePlayer(parent, args){
             let allPlayers = await getRegisteredPlayers(pickupGamesArray[pickupGame].registeredPlayers);
 
             if (allPlayers.length < 2){
-                await pickupGameResolver.deletePickupGame("", pickupGamesArray[pickupGame]._id)
+                await pickupGameResolver.deletePickupGame("", {input:{id:pickupGamesArray[pickupGame]._id}})
             }
             else {
                 allPlayers.sort((p_a, p_b) => (p_a.name > p_b.name) ? 1 : -1);

@@ -13,13 +13,20 @@ async function createPickupGame(parent, args){
     const host = await playerData.findOne({_id: args["input"]["hostId"], deleted: false});
     await validatePickupGame(args["input"], host);
 
-    let newPickupGame = await pickupGameData.create(args["input"]);
-    newPickupGame.registeredPlayers.push(args["input"]["hostId"]);
-    newPickupGame.save();
+    let newPickupGame = await pickupGameData.create(
+        {
+            start: args["input"]["start"]["value"],
+            end: args["input"]["end"]["value"],
+            basketballFieldId: args["input"]["basketballFieldId"],
+            hostId: args["input"]["hostId"]
+        }
+    );
 
-
-    host.playedGames.push(newPickupGame._id);
-    host.save();
+    await addPlayerToPickupGame("", {input:
+            {
+                pickupGameId: newPickupGame._id,
+                playerId: args["input"]["hostId"]
+            }});
 
     return newPickupGame
 }
@@ -35,9 +42,8 @@ async function validatePickupGame(input, host){
         throw new errors.NotFoundError()
     }
 
-    const start_date = new Date(input["start"]);
-    const end_date = new Date(input["end"]);
-    console.log(end_date - start_date);
+    const start_date = new Date(input["start"]["value"]);
+    const end_date = new Date(input["end"]["value"]);
 
     if(end_date - start_date <= MINLENGTH || end_date - start_date >= MAXLENGTH ){
         throw new errors.DurationNotAllowedError;
@@ -62,8 +68,7 @@ async function validatePickupGame(input, host){
 async function addPlayerToPickupGame(parent, args){
 
     const pickupGame = await pickupGameData.findOne({_id: args['input']["pickupGameId"], deleted: false});
-    console.log(args["input"]["playerId"]);
-    console.log("right before get player");
+
     const player = await playerData.findOne({_id: args["input"]["playerId"], deleted: false});
     await validateAddPlayerToPickupGame(pickupGame, player);
 
@@ -88,20 +93,32 @@ async function validateAddPlayerToPickupGame(pickupGame, player){
         throw new errors.PlayerAlreadyRegisteredError()
     }
 
+    let start_date = pickupGame.start;
+    let end_date = pickupGame.end;
+
+    const pickupGames = await allPickupGames();
+    for(let game in pickupGames){
+        if (pickupGames[game].registeredPlayers.includes(player._id)){
+            if(end_date >= pickupGames[game].start && start_date <= pickupGames[game].end ){
+                await deletePickupGame("", {input:{id:pickupGame._id}});
+
+                throw new errors.PlayerInPickupGameOverlapError();
+            }
+        }
+
+    }
     const location = await basketballFieldService.getBasketballFieldById("", pickupGame["basketballFieldId"])
 
     if (pickupGame.registeredPlayers.length + 1 > location.capacity){
-        throw new errors.PickupGameExceedMaximumError()
+        throw new errors.PickupGameExceedMaximumError();
     }
 }
 
 async function getPlayedGames(parent){
     let playedArr = [];
     let pickupGame;
-    console.log(parent);
     for (let gameId in parent.playedGames) {
         pickupGame = pickupGameData.findOne({_id: parent.playedGames[gameId], deleted: false});
-        console.log(pickupGame);
         playedArr.push(pickupGame)
     }
     return playedArr
@@ -150,8 +167,7 @@ async function validateRemovePlayerFromPickupGame(pickupGame, playerId){
 }
 
 async function deletePickupGame(parent, args){
-    console.log(args);
-    let game = await pickupGameData.findOne({_id: args, deleted:false});
+    let game = await pickupGameData.findOne({_id: args["input"]["id"], deleted:false});
     if (game === null){
         throw new errors.NotFoundError();
     }

@@ -72,6 +72,14 @@ class PlayerAlreadyRegisteredError extends ApolloError {
     }
 }
 
+class PlayerInPickupGameOverlapError extends ApolloError {
+    constructor(message = 'Pickup games with this player cannot overlap') {
+        super(message, null, null);
+        this.name = 'PlayerInPickupGameOverlapError';
+        this.code = 400;
+    }
+};
+
 module.exports = {
     PickupGameExceedMaximumError,
     BasketballFieldClosedError,
@@ -82,5 +90,6 @@ module.exports = {
     TimeHasPassedError,
     MixedDatesError,
     DurationNotAllowedError,
-    PlayerAlreadyRegisteredError
+    PlayerAlreadyRegisteredError,
+    PlayerInPickupGameOverlapError
 };
