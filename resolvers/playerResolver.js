@@ -32,6 +32,7 @@ async function getAllPlayers(){
 }
 
 async function getPlayerById(id){
+    console.log("in get player")
     let player = await playerData.findOne({_id: id, deleted:false})
     if (player === null) {
         throw new errors.NotFoundError();
@@ -98,8 +99,7 @@ module.exports = {
       removePlayer: removePlayer
   },
     getPlayerById: getPlayerById,
-    getRegisteredPlayers: getRegisteredPlayers,
-    getPlayerById: getPlayerById
+    getRegisteredPlayers: getRegisteredPlayers
 };
 
 

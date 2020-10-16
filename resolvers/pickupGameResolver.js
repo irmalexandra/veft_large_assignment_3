@@ -31,7 +31,10 @@ async function validatePickupGame(input){
         throw new errors.NotFoundError()
     }
     const pickupGames = await getPickupGamesByLocationId(input["basketballFieldId"]);
+    console.log("right before get player")
     const host = await playerResolver.getPlayerById(input["hostId"])
+    console.log("right after get player")
+
     if (host === null){
         throw new errors.NotFoundError()
     }
@@ -89,9 +92,10 @@ async function validateAddPlayerToPickupGame(pickupGame, playerId){
 }
 
 async function getPlayedGames(parent){
-    playedArr = [];
-    for (gameId in parent.playedGames){
-        pickupGame = pickupGameData.findOne({_id: parent.playedGames[gameId], deleted:false});
+    let playedArr = [];
+    let pickupGame;
+    for (let gameId in parent.playedGames) {
+        pickupGame = pickupGameData.findOne({_id: parent.playedGames[gameId], deleted: false});
         playedArr.push(pickupGame)
     }
     return playedArr
@@ -102,7 +106,6 @@ async function getPickupGamesByLocationId(locationId){
 }
 
 async function allPickupGames(){
-    pickupGamesArray = await pickupGameData.find({deleted:false})
     return pickupGameData.find({deleted:false})
 }
 
