@@ -2,6 +2,9 @@ const playerData = require('../data/db').Player;
 const pickupGameData = require('../data/db').PickupGame;
 const playedGames = require('../data/db').PlayedGames;
 const playerSchema = require('../data/schemas/Player');
+const pickupGameResolver = require('./pickupGameResolver')
+const errors = require("../errors");
+
 
 async function createPlayer (parent, args) {
     const player = await playerData.create(args["input"]);
@@ -29,27 +32,55 @@ async function getAllPlayers(){
 }
 
 async function getPlayerById(id){
-    return playerData.findOne({_id: id, deleted:false});
+    let player = await playerData.findOne({_id: id, deleted:false})
+    if (player === null) {
+        throw new errors.NotFoundError();
+    }
+    return player;
 }
 
 async function getRegisteredPlayers(registeredPlayers){
-    regPlayersArr = [];
-    for (playerId in registeredPlayers){
-        regPlayersArr.push(playerData.findById(registeredPlayers[playerId]))
+    let regPlayersArr = [];
+    for (let playerId in registeredPlayers){
+        let player = await playerData.findOne({_id: registeredPlayers[playerId], deleted:false})
+        if (player) {
+            regPlayersArr.push(player)
+        }
     }
     return regPlayersArr
 }
 
 async function removePlayer(parent, args){
-    let player = await playerData.findOne({_id: args["id"], deleted:false})
-    if (player !== null){
-        player.deleted = true;
-        player.save();
-        return true
+    let player = await getPlayerById(args["id"])
+    if (player === null){
+        throw new errors.NotFoundError()
     }
-    // TODO THROW ERROR
-    return false
+    let pickupGamesArray = await pickupGameResolver.allPickupGames()
+
+    for (let pickupGame in pickupGamesArray){
+        let hostId = pickupGamesArray[pickupGame].hostId
+        console.log(pickupGamesArray[pickupGame]._id)
+        if (player.id == hostId) {
+
+            let allPlayers = await getRegisteredPlayers(pickupGamesArray[pickupGame].registeredPlayers)
+
+            if (allPlayers.length < 2){
+                await pickupGameResolver.deletePickupGame("", pickupGamesArray[pickupGame]._id)
+            }
+            else {
+                allPlayers.sort((p_a, p_b) => (p_a.name > p_b.name) ? 1 : -1)
+                pickupGamesArray[pickupGame].hostId = allPlayers[0]._id
+                pickupGamesArray[pickupGame].save()
+            }
+        }
+    }
+    player.deleted = true;
+    player.save();
+    return true
+
+
 }
+
 
 
 module.exports = {
@@ -67,8 +98,8 @@ module.exports = {
       removePlayer: removePlayer
   },
     getPlayerById: getPlayerById,
-    getRegisteredPlayers: getRegisteredPlayers
-
+    getRegisteredPlayers: getRegisteredPlayers,
+    getPlayerById: getPlayerById
 };
 
 

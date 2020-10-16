@@ -2,16 +2,45 @@ const pickupGameData = require('../data/db').PickupGame;
 const playerData = require('../data/db').Player;
 const playedGamesData = require('../data/db').PlayedGames;
 const basketballFieldService = require('../services/basketballFieldService');
+const playerResolver = require("./playerResolver")
 const errors = require("../errors");
 
+
+const MINLENGTH = 300000;
+const MAXLENGTH = 7200000
+
 async function createPickupGame(parent, args){
-    const location = await basketballFieldService.getBasketballFieldById("", args["input"]["basketballFieldId"])
-    const pickupGames = await getPickupGamesByLocationId(args["input"]["basketballFieldId"]);
-    const start_date = new Date(args["input"]["start"])
-    const end_date = new Date(args["input"]["end"])
+
+    await validatePickupGame(args["input"])
+
+    let newPickupGame = await pickupGameData.create(args["input"]);
+    newPickupGame.registeredPlayers.push(args["input"]["hostId"]);
+    newPickupGame.save();
+    let playedGame = {
+        playerID: args["input"]["hostId"],
+        pickupGameID : newPickupGame.id
+    }
+    await playedGamesData.create(playedGame)
+
+    return newPickupGame
+}
+
+async function validatePickupGame(input){
+    const location = await basketballFieldService.getBasketballFieldById("", input["basketballFieldId"])
+    if (location === null) {
+        throw new errors.NotFoundError()
+    }
+    const pickupGames = await getPickupGamesByLocationId(input["basketballFieldId"]);
+    const host = await playerResolver.getPlayerById(input["hostId"])
+    if (host === null){
+        throw new errors.NotFoundError()
+    }
+
+    const start_date = new Date(input["start"])
+    const end_date = new Date(input["end"])
     console.log(end_date - start_date)
 
-    if(end_date - start_date <= 300000 || end_date - start_date >= 7200000 ){
+    if(end_date - start_date <= MINLENGTH || end_date - start_date >= MAXLENGTH ){
         throw new errors.DurationNotAllowedError;
     }
     if(start_date < Date.now()){
@@ -21,33 +50,42 @@ async function createPickupGame(parent, args){
         throw new errors.MixedDatesError;
     }
 
-    for(game in pickupGames){
+    for(let game in pickupGames){
         if(end_date >= pickupGames[game].start && start_date <= pickupGames[game].end ){
             throw new errors.PickupGameOverlapError;
         }
-        // console.log(pickupGames[game])
     }
-    if(location["status"] === 'OPEN'){
-
-        newPickupGame = await pickupGameData.create(args["input"]);
-        newPickupGame.registeredPlayers.push(args["input"]["hostId"]);
-        newPickupGame.save();
-        return newPickupGame
-    }else{
+    if(location["status"] === 'CLOSED'){
         throw new errors.BasketballFieldClosedError;
     }
-
 }
 
 async function addPlayerToPickupGame(parent, args){
-    pickupGame = await pickupGameData.findOne({_id: args["input"]["pickupGameId"], deleted:false});
-    if (pickupGame !== null){
-        pickupGame.registeredPlayers.push(args["input"]["playerId"]);
-        pickupGame.save();
-        return pickupGame
+
+    let pickupGame = await pickupGameData.findOne({_id: args['input']["pickupGameId"], deleted: false});
+
+    await validateAddPlayerToPickupGame(pickupGame, args["input"]["playerId"])
+
+    pickupGame.registeredPlayers.push(args["input"]["playerId"]);
+    pickupGame.save();
+    return pickupGame
+}
+
+async function validateAddPlayerToPickupGame(pickupGame, playerId){
+    if (pickupGame === null){
+        throw new errors.NotFoundError()
     }
-    // TODO THROW ERROR
-    return null
+    if (pickupGame.registeredPlayers.includes(playerId)) {
+        throw new errors.PlayerAlreadyRegisteredError()
+    }
+    console.log(pickupGame.registeredPlayers.length)
+
+
+    const location = await basketballFieldService.getBasketballFieldById("", pickupGame["basketballFieldId"])
+    console.log(location)
+    if (pickupGame.registeredPlayers.length + 1 > location.capacity){
+        throw new errors.PickupGameExceedMaximumError()
+    }
 }
 
 async function getPlayedGames(parent){
@@ -64,41 +102,55 @@ async function getPickupGamesByLocationId(locationId){
 }
 
 async function allPickupGames(){
+    pickupGamesArray = await pickupGameData.find({deleted:false})
     return pickupGameData.find({deleted:false})
 }
 
 async function getPickupGameById(parent, args){
-    return pickupGameData.findOne({_id: args["id"], deleted:false})
+    let pickupGame = await pickupGameData.findOne({_id: args["id"], deleted:false})
+    if (pickupGame === null) {
+        throw new errors.NotFoundError()
+    }
+    return pickupGame
 }
 
 async function removePlayerFromPickupGame(parent, args){
-    pickupGame = await pickupGameData.findOne({_id: args["input"]["pickupGameId"], deleted:false});
-    if (pickupGame !== null){
-        if (pickupGame.registeredPlayers.includes(args["input"]["playerId"])) {
-            pickupGame.registeredPlayers.splice(
-                pickupGame.registeredPlayers.indexOf(args["input"]["playerId"])
-            );
-            pickupGame.save();
-            return true
-        }
-    }
-    // TODO THROW ERROR
-    return false
+    let pickupGame = await pickupGameData.findOne({_id: args["input"]["pickupGameId"], deleted: false});
+
+    await validateRemovePlayerFromPickupGame(pickupGame, args["input"]["playerId"]);
+
+    pickupGame.registeredPlayers.splice(
+        pickupGame.registeredPlayers.indexOf(args["input"]["playerId"])
+    );
+    pickupGame.save();
+    return true
 
 }
 
+async function validateRemovePlayerFromPickupGame(pickupGame, playerId){
+    if (pickupGame === null){
+        throw new errors.NotFoundError()
+    }
+    if(pickupGame.start < Date.now()){
+        throw new errors.TimeHasPassedError;
+    }
+    if (!pickupGame.registeredPlayers.includes(playerId)) {
+        throw new errors.NotFoundError()
+    }
 
+}
 
 async function deletePickupGame(parent, args){
-    let game = await pickupGameData.findOne({_id: args["id"], deleted:false});
-    if (game !== null){
-        game.deleted = true;
-        game.save();
-        return true
+    console.log(args)
+    let game = await pickupGameData.findOne({_id: args, deleted:false});
+    if (game === null){
+        throw new errors.NotFoundError();
     }
-    // TODO THROW ERROR
-    return false
+    game.deleted = true;
+    game.save();
+    return true;
 }
+
 
 
 module.exports = {
@@ -117,6 +169,10 @@ module.exports = {
     },
     getPlayedGames: getPlayedGames,
     getPickupGamesByLocationId: getPickupGamesByLocationId,
+    allPickupGames: allPickupGames,
+    deletePickupGame: deletePickupGame
+
+
 
 
 };
