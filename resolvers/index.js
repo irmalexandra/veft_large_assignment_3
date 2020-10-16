@@ -25,11 +25,11 @@ module.exports = {
     registeredPlayers: parent => playerResolver.getRegisteredPlayers(parent.registeredPlayers)
   },
   BasketballField: {
-    pickupGames: parent => pickupGameResolver.getPickupGamesByLocationId(parent.location),
+    pickupGames: parent => pickupGameResolver.getPickupGamesByLocationId(parent.id),
   },
   Moment: new GraphQLScalarType({
     name: "Moment",
-    description: "Used for getting a specific Icelandic date format",
+    description: "Used to format dates correctly.",
     parseValue: (value) => {return value},
     parseLiteral: (value) => {return value},
     serialize: (value) => moment(value).format("llll")

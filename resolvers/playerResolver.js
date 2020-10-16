@@ -4,35 +4,41 @@ const playedGames = require('../data/db').PlayedGames;
 const playerSchema = require('../data/schemas/Player');
 const pickupGameResolver = require('./pickupGameResolver');
 const errors = require("../errors");
-
+const mongoose = require('mongoose');
 
 async function createPlayer (parent, args) {
     const player = await playerData.create(args["input"]);
-    console.log(player);
     return player
 }
 
 async function updatePlayer(parent, args) {
-    playerID = args.id;
-    newName = args.name;
-    let player = await playerData.findOne({_id: playerID, deleted:false});
-    if (player !== null){
-        player.name = newName;
-        await player.save();
-        return player
+    if(!mongoose.isValidObjectId(args.id)){
+        throw new errors.NotValidIdError();
     }
-    //TODO THROW ERROR
-    return null
+
+    let playerID = args.id;
+    let newName = args.name;
+
+    let player = await playerData.findOne({_id: playerID, deleted:false});
+    if (player === null){
+        throw new errors.NotFoundError();
+    }
+    player.name = newName;
+    await player.save();
+    return player
+
 
 }
 
 async function getAllPlayers(){
-    let allPlayers = await playerData.find({deleted: false});
-    return allPlayers;
+    return await playerData.find({deleted: false});
 }
 
 async function getPlayerById(id){
-    console.log("in get player");
+    if(!mongoose.isValidObjectId(id)){
+        throw new errors.NotValidIdError();
+    }
+
     let player = await playerData.findOne({_id: id, deleted:false})
     if (player === null) {
         throw new errors.NotFoundError();
@@ -52,6 +58,11 @@ async function getRegisteredPlayers(registeredPlayers){
 }
 
 async function removePlayer(parent, args){
+
+    if(!mongoose.isValidObjectId(args["id"])){
+        throw new errors.NotValidIdError();
+    }
+
     let player = await getPlayerById(args["id"]);
     if (player === null){
         throw new errors.NotFoundError()
@@ -60,7 +71,7 @@ async function removePlayer(parent, args){
 
     for (let pickupGame in pickupGamesArray){
         let hostId = pickupGamesArray[pickupGame].hostId;
-        console.log(pickupGamesArray[pickupGame]._id);
+
         if (player.id == hostId) {
 
             let allPlayers = await getRegisteredPlayers(pickupGamesArray[pickupGame].registeredPlayers);

@@ -64,6 +64,14 @@ class NotFoundError extends ApolloError {
     }
 }
 
+class NotValidIdError extends ApolloError {
+    constructor(message = 'Parameter is not a valid MongoDB Id') {
+        super(message, null, null);
+        this.name = 'NotValidIdError';
+        this.code = 404;
+    }
+}
+
 class PlayerAlreadyRegisteredError extends ApolloError {
     constructor(message = 'Player is already registered') {
         super(message, null, null);
@@ -91,5 +99,6 @@ module.exports = {
     MixedDatesError,
     DurationNotAllowedError,
     PlayerAlreadyRegisteredError,
-    PlayerInPickupGameOverlapError
+    PlayerInPickupGameOverlapError,
+    NotValidIdError
 };

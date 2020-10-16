@@ -3,6 +3,7 @@ const playerData = require('../data/db').Player;
 const playedGamesData = require('../data/db').PlayedGames;
 const basketballFieldService = require('../services/basketballFieldService');
 const errors = require("../errors");
+const mongoose = require('mongoose');
 
 const MINLENGTH = 300000;
 const MAXLENGTH = 7200000;
@@ -10,6 +11,10 @@ const MAXLENGTH = 7200000;
 
 
 async function createPickupGame(parent, args){
+    if(!mongoose.isValidObjectId(args["input"]["hostId"])){
+        throw new errors.NotValidIdError();
+    }
+
     const host = await playerData.findOne({_id: args["input"]["hostId"], deleted: false});
     await validatePickupGame(args["input"], host);
 
@@ -66,6 +71,10 @@ async function validatePickupGame(input, host){
 }
 
 async function addPlayerToPickupGame(parent, args){
+
+    if(!mongoose.isValidObjectId(args["input"]["playerId"])){
+        throw new errors.NotValidIdError();
+    }
 
     const pickupGame = await pickupGameData.findOne({_id: args['input']["pickupGameId"], deleted: false});
 
@@ -125,15 +134,19 @@ async function getPlayedGames(parent){
 }
 
 async function getPickupGamesByLocationId(locationId){
-    return pickupGameData.find({basketballFieldId : locationId})
+    return pickupGameData.find({basketballFieldId: locationId})
 }
 
 async function allPickupGames(){
-    return pickupGameData.find({deleted:false})
+    return pickupGameData.find({deleted: false})
 }
 
 async function getPickupGameById(parent, args){
-    let pickupGame = await pickupGameData.findOne({_id: args["id"], deleted:false})
+    if(!mongoose.isValidObjectId(args["id"])){
+        throw new errors.NotValidIdError();
+    }
+
+    let pickupGame = await pickupGameData.findOne({_id: args["id"], deleted: false})
     if (pickupGame === null) {
         throw new errors.NotFoundError()
     }
@@ -141,6 +154,11 @@ async function getPickupGameById(parent, args){
 }
 
 async function removePlayerFromPickupGame(parent, args){
+
+    if(!mongoose.isValidObjectId(args["input"]["pickupGameId"])){
+        throw new errors.NotValidIdError();
+    }
+
     let pickupGame = await pickupGameData.findOne({_id: args["input"]["pickupGameId"], deleted: false});
 
     await validateRemovePlayerFromPickupGame(pickupGame, args["input"]["playerId"]);
@@ -167,6 +185,11 @@ async function validateRemovePlayerFromPickupGame(pickupGame, playerId){
 }
 
 async function deletePickupGame(parent, args){
+
+    if(!mongoose.isValidObjectId(args["input"]["id"])){
+        throw new errors.NotValidIdError();
+    }
+
     let game = await pickupGameData.findOne({_id: args["input"]["id"], deleted:false});
     if (game === null){
         throw new errors.NotFoundError();
@@ -175,7 +198,6 @@ async function deletePickupGame(parent, args){
     game.save();
     return true;
 }
-
 
 
 module.exports = {
