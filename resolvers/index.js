@@ -1,7 +1,8 @@
 const playerResolver = require('./playerResolver');
 const basketballFieldResolver = require('./basketballFieldResolver');
 const pickupGameResolver = require('./pickupGameResolver');
-const momentScalar = require('moment');
+const moment = require('moment');
+const { GraphQLScalarType } = require('graphql');
 
 module.exports = {
   Query: {
@@ -26,8 +27,12 @@ module.exports = {
   BasketballField: {
     pickupGames: parent => pickupGameResolver.getPickupGamesByLocationId(parent.location),
   },
-  Moment: {
-    end: parent => console.log(parent),
-  },
+  Moment: new GraphQLScalarType({
+    name: "Moment",
+    description: "Used for getting a specific Icelandic date format",
+    parseValue: (value) => {return value},
+    parseLiteral: (value) => {return value},
+    serialize: (value) => moment(value).format("llll")
+  }),
 
 };
