@@ -81,5 +81,6 @@ module.exports = {
     UserInputError,
     TimeHasPassedError,
     MixedDatesError,
-    DurationNotAllowedError
+    DurationNotAllowedError,
+    PlayerAlreadyRegisteredError
 };
