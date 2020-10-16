@@ -16,11 +16,10 @@ async function createPickupGame(parent, args){
     let newPickupGame = await pickupGameData.create(args["input"]);
     newPickupGame.registeredPlayers.push(args["input"]["hostId"]);
     newPickupGame.save();
-    let playedGame = {
-        playerID: args["input"]["hostId"],
-        pickupGameID : newPickupGame.id
-    }
-    await playedGamesData.create(playedGame)
+
+    const host = await playerResolver.getPlayerById(args["input"]["hostId"])
+    host.playedGames.push(newPickupGame._id)
+    host.save()
 
     return newPickupGame
 }
@@ -65,27 +64,36 @@ async function validatePickupGame(input){
 
 async function addPlayerToPickupGame(parent, args){
 
-    let pickupGame = await pickupGameData.findOne({_id: args['input']["pickupGameId"], deleted: false});
+    const pickupGame = await pickupGameData.findOne({_id: args['input']["pickupGameId"], deleted: false});
+    console.log(args["input"]["playerId"])
+    console.log("right before get player")
+    const player = await playerResolver.getPlayerById(args["input"]["playerId"])
 
-    await validateAddPlayerToPickupGame(pickupGame, args["input"]["playerId"])
+    await validateAddPlayerToPickupGame(pickupGame, player)
+
+    player.playedGames.push(pickupGame.id)
+    player.save()
 
     pickupGame.registeredPlayers.push(args["input"]["playerId"]);
     pickupGame.save();
     return pickupGame
 }
 
-async function validateAddPlayerToPickupGame(pickupGame, playerId){
+async function validateAddPlayerToPickupGame(pickupGame, player){
+
+    if (player === null) {
+        throw new errors.NotFoundError()
+    }
+
     if (pickupGame === null){
         throw new errors.NotFoundError()
     }
-    if (pickupGame.registeredPlayers.includes(playerId)) {
+    if (pickupGame.registeredPlayers.includes(player._id)) {
         throw new errors.PlayerAlreadyRegisteredError()
     }
-    console.log(pickupGame.registeredPlayers.length)
-
 
     const location = await basketballFieldService.getBasketballFieldById("", pickupGame["basketballFieldId"])
-    console.log(location)
+
     if (pickupGame.registeredPlayers.length + 1 > location.capacity){
         throw new errors.PickupGameExceedMaximumError()
     }
@@ -94,8 +102,10 @@ async function validateAddPlayerToPickupGame(pickupGame, playerId){
 async function getPlayedGames(parent){
     let playedArr = [];
     let pickupGame;
+    console.log(parent)
     for (let gameId in parent.playedGames) {
         pickupGame = pickupGameData.findOne({_id: parent.playedGames[gameId], deleted: false});
+        console.log(pickupGame)
         playedArr.push(pickupGame)
     }
     return playedArr
@@ -174,9 +184,6 @@ module.exports = {
     getPickupGamesByLocationId: getPickupGamesByLocationId,
     allPickupGames: allPickupGames,
     deletePickupGame: deletePickupGame
-
-
-
 
 };
 

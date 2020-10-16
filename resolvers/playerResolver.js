@@ -27,7 +27,7 @@ async function updatePlayer(parent, args) {
 }
 
 async function getAllPlayers(){
-    allPlayers = await playerData.find({deleted: false});
+    let allPlayers = await playerData.find({deleted: false});
     return allPlayers;
 }
 
@@ -98,8 +98,8 @@ module.exports = {
       updatePlayer : updatePlayer,
       removePlayer: removePlayer
   },
-    getPlayerById: getPlayerById,
-    getRegisteredPlayers: getRegisteredPlayers
+    getRegisteredPlayers: getRegisteredPlayers,
+    getPlayerById: getPlayerById
 };
 
 
