@@ -26,7 +26,7 @@ async function createPickupGame(parent, args){
         }
     );
 
-    await addPlayerToPickupGame("", {input:
+     newPickupGame= await addPlayerToPickupGame("", {input:
             {
                 pickupGameId: newPickupGame._id,
                 playerId: args["input"]["hostId"]
@@ -49,14 +49,14 @@ async function validatePickupGame(input, host){
     const start_date = new Date(input["start"]["value"]);
     const end_date = new Date(input["end"]["value"]);
 
-    if(end_date - start_date <= MINLENGTH || end_date - start_date >= MAXLENGTH ){
-        throw new errors.DurationNotAllowedError;
+    if(start_date > end_date){
+        throw new errors.MixedDatesError;
     }
     if(start_date < Date.now()){
         throw new errors.TimeHasPassedError;
     }
-    if(start_date > end_date){
-        throw new errors.MixedDatesError;
+    if(end_date - start_date <= MINLENGTH || end_date - start_date >= MAXLENGTH ){
+        throw new errors.DurationNotAllowedError;
     }
 
     for(let game in pickupGames){
@@ -126,9 +126,12 @@ async function getPlayedGames(parent){
     let playedArr = [];
     let pickupGame;
     for (let gameId in parent.playedGames) {
-        pickupGame = pickupGameData.findOne({_id: parent.playedGames[gameId], deleted: false});
-        playedArr.push(pickupGame)
+        pickupGame = await pickupGameData.findOne({_id: parent.playedGames[gameId], deleted: false});
+        if(pickupGame !== null){
+            playedArr.push(pickupGame)
+        }
     }
+    console.log(playedArr)
     return playedArr
 }
 
@@ -179,17 +182,18 @@ async function validateRemovePlayerFromPickupGame(pickupGame, playerId){
     }
     if (!pickupGame.registeredPlayers.includes(playerId)) {
         throw new errors.NotFoundError()
+
     }
 
 }
 
 async function deletePickupGame(parent, args){
 
-    if(!mongoose.isValidObjectId(args["input"]["id"])){
+    if(!mongoose.isValidObjectId(args["id"])){
         throw new errors.NotValidIdError();
     }
 
-    let game = await pickupGameData.findOne({_id: args["input"]["id"], deleted:false});
+    let game = await pickupGameData.findOne({_id: args["id"], deleted:false});
     if (game === null){
         throw new errors.NotFoundError();
     }
