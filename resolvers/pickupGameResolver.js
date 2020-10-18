@@ -166,15 +166,17 @@ async function removePlayerFromPickupGame(parent, args){
     }
 
     let pickupGame = await pickupGameData.findOne({_id: args["input"]["pickupGameId"], deleted: false});
-
     await validateRemovePlayerFromPickupGame(pickupGame, args["input"]["playerId"]);
-    pickupGame.registeredPlayers.splice(
-        pickupGame.registeredPlayers.indexOf(args["input"]["playerId"]),1
-    );
+    const player = await playerData.findById(args["input"]["playerId"]);
+    player.playedGames.splice(player.playedGames.indexOf(args["input"]["pickupGameId"]), 1)
+    pickupGame.registeredPlayers.splice(pickupGame.registeredPlayers.indexOf(args["input"]["playerId"]), 1);
+    player.save();
+
+
     if(pickupGame.registeredPlayers.length === 0){
         await deletePickupGame("", {id: pickupGame._id})
     }
-    else{
+    else if(pickupGame.hostId == args["input"]["playerId"]){
         let allPlayers  = [];
         for (let playerId in pickupGame.registeredPlayers){
             let player = await playerData.findOne({_id: pickupGame.registeredPlayers[playerId], deleted:false});
@@ -184,8 +186,9 @@ async function removePlayerFromPickupGame(parent, args){
         }
         allPlayers.sort((p_a, p_b) => (p_a.name > p_b.name) ? 1 : -1);
         pickupGame.hostId = allPlayers[0]._id;
-        pickupGame.save();
+
     }
+    pickupGame.save();
     return true
 }
 
