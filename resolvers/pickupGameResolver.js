@@ -60,7 +60,9 @@ async function validatePickupGame(input, host){
     }
 
     for(let game in pickupGames){
-        if(end_date >= pickupGames[game].start && start_date <= pickupGames[game].end ){
+        if(end_date >= pickupGames[game].start
+            && start_date <= pickupGames[game].end
+            && pickupGames[game].basketballFieldId === location.id){
             throw new errors.PickupGameOverlapError;
         }
     }
@@ -90,7 +92,9 @@ async function addPlayerToPickupGame(parent, args){
 
 async function validateAddPlayerToPickupGame(pickupGame, player){
 
-    if (player === null) {
+
+
+    if (player === null){
         throw new errors.NotFoundError()
     }
 
@@ -106,10 +110,11 @@ async function validateAddPlayerToPickupGame(pickupGame, player){
 
     const pickupGames = await allPickupGames();
     for(let game in pickupGames){
-        if (pickupGames[game].registeredPlayers.includes(player._id)){
-            if(end_date >= pickupGames[game].start && start_date <= pickupGames[game].end ){
-                await deletePickupGame("", {input:{id:pickupGame._id}});
-
+    if (pickupGames[game].registeredPlayers.includes(player._id)){
+        if(end_date >= pickupGames[game].start && start_date <= pickupGames[game].end ){
+            if (pickupGame.hostId === player._id){
+                await deletePickupGame("", {id:pickupGame._id});
+            }
                 throw new errors.PlayerInPickupGameOverlapError();
             }
         }
@@ -131,12 +136,11 @@ async function getPlayedGames(parent){
             playedArr.push(pickupGame)
         }
     }
-    console.log(playedArr)
     return playedArr
 }
 
 async function getPickupGamesByLocationId(locationId){
-    return pickupGameData.find({basketballFieldId: locationId})
+    return pickupGameData.find({basketballFieldId: locationId, deleted:false})
 }
 
 async function allPickupGames(){
@@ -164,13 +168,25 @@ async function removePlayerFromPickupGame(parent, args){
     let pickupGame = await pickupGameData.findOne({_id: args["input"]["pickupGameId"], deleted: false});
 
     await validateRemovePlayerFromPickupGame(pickupGame, args["input"]["playerId"]);
-
     pickupGame.registeredPlayers.splice(
-        pickupGame.registeredPlayers.indexOf(args["input"]["playerId"])
+        pickupGame.registeredPlayers.indexOf(args["input"]["playerId"]),1
     );
-    pickupGame.save();
+    if(pickupGame.registeredPlayers.length === 0){
+        await deletePickupGame("", {id: pickupGame._id})
+    }
+    else{
+        let allPlayers  = [];
+        for (let playerId in pickupGame.registeredPlayers){
+            let player = await playerData.findOne({_id: pickupGame.registeredPlayers[playerId], deleted:false});
+            if (player) {
+                allPlayers.push(player)
+            }
+        }
+        allPlayers.sort((p_a, p_b) => (p_a.name > p_b.name) ? 1 : -1);
+        pickupGame.hostId = allPlayers[0]._id;
+        pickupGame.save();
+    }
     return true
-
 }
 
 async function validateRemovePlayerFromPickupGame(pickupGame, playerId){
@@ -182,7 +198,6 @@ async function validateRemovePlayerFromPickupGame(pickupGame, playerId){
     }
     if (!pickupGame.registeredPlayers.includes(playerId)) {
         throw new errors.NotFoundError()
-
     }
 
 }
@@ -192,7 +207,6 @@ async function deletePickupGame(parent, args){
     if(!mongoose.isValidObjectId(args["id"])){
         throw new errors.NotValidIdError();
     }
-
     let game = await pickupGameData.findOne({_id: args["id"], deleted:false});
     if (game === null){
         throw new errors.NotFoundError();

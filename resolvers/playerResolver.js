@@ -36,7 +36,7 @@ async function getPlayerById(id){
         throw new errors.NotValidIdError();
     }
 
-    let player = await playerData.findOne({_id: id, deleted:false})
+    let player = await playerData.findOne({_id: id, deleted:false});
     if (player === null) {
         throw new errors.NotFoundError();
     }
@@ -64,6 +64,9 @@ async function removePlayer(parent, args){
     if (player === null){
         throw new errors.NotFoundError()
     }
+    player.deleted = true;
+    player.save();
+
     let pickupGamesArray = await pickupGameResolver.allPickupGames();
 
     for (let pickupGame in pickupGamesArray){
@@ -73,8 +76,8 @@ async function removePlayer(parent, args){
 
             let allPlayers = await getRegisteredPlayers(pickupGamesArray[pickupGame].registeredPlayers);
 
-            if (allPlayers.length < 2){
-                await pickupGameResolver.deletePickupGame("", {input:{id:pickupGamesArray[pickupGame]._id}})
+            if (allPlayers.length <= 1){
+                await pickupGameResolver.deletePickupGame("", {id:pickupGamesArray[pickupGame]._id})
             }
             else {
                 allPlayers.sort((p_a, p_b) => (p_a.name > p_b.name) ? 1 : -1);
@@ -83,10 +86,10 @@ async function removePlayer(parent, args){
             }
         }
     }
-    player.deleted = true;
-    player.save();
+
     return true
 }
+
 
 module.exports = {
   queries: {
